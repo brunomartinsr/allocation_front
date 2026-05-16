@@ -115,12 +115,14 @@ export default function App() {
     }
   }
 
-  const handleSaveItem = (item) => {
+  const handleSaveItem = (newItems) => {
     if (editingItem !== null) {
-      setItems(prev => prev.map((it, i) => i === editingItem ? item : it))
+      // Se estiver editando, substitui o item específico pelo primeiro item do array de novos itens
+      setItems(prev => prev.map((it, i) => i === editingItem ? newItems[0] : it))
       setEditingItem(null)
     } else {
-      setItems(prev => [...prev, item])
+      // Se for novo, apenas adiciona ao final
+      setItems(prev => [...prev, ...newItems])
     }
     navigate('items')
   }
@@ -266,7 +268,7 @@ export default function App() {
           <NewItemPage
             onSave={handleSaveItem}
             onCancel={() => { setEditingItem(null); navigate('items') }}
-            initialData={editingItem !== null ? items[editingItem] : null}
+            allCurrentItems={items}
           />
         )}
 

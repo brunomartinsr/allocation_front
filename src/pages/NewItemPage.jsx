@@ -1,123 +1,74 @@
 import { useState } from 'react'
 
-const CATEGORIAS = [
-  'Móvel', 'Eletrodoméstico', 'Eletrônico', 'Caixa', 'Palete', 'Fragil', 'Outro'
-]
+const CATEGORIAS = ['Móvel', 'Eletrodoméstico', 'Eletrônico', 'Caixa', 'Palete', 'Fragil', 'Outro']
+const blockInvalidChar = (e) => ['-', 'e', 'E', '+'].includes(e.key) && e.preventDefault()
 
-const blockInvalidChar = (e) => {
-  if (['-', 'e', 'E', '+'].includes(e.key)) e.preventDefault()
-}
+const createEmptyItem = () => ({
+  name: '', categoria: '', quantidade: '', larg: '', alt: '', comp: '', peso: ''
+})
 
-export default function NewItemPage({ onSave, onCancel, initialData }) {
-  const [form, setForm] = useState(initialData || {
-    name: '', categoria: '', quantidade: '', larg: '', alt: '', comp: '', peso: ''
-  })
+export default function NewItemPage({ onSave, onCancel, allCurrentItems }) {
+  const [items, setItems] = useState(allCurrentItems && allCurrentItems.length > 0 ? allCurrentItems : [createEmptyItem()])
 
-  const set = (field, value) => setForm(prev => ({ ...prev, [field]: value }))
+  const updateItem = (index, field, value) => {
+    setItems(prev => prev.map((item, i) => i === index ? { ...item, [field]: value } : item))
+  }
+
+  const removeItem = (index) => {
+    if (items.length > 1) {
+      setItems(prev => prev.filter((_, i) => i !== index))
+    }
+  }
 
   const handleSubmit = (e) => {
     e.preventDefault()
-    const hasEmpty = Object.values(form).some(v => v === '')
-    if (hasEmpty) return
-    onSave(form)
+    onSave(items)
   }
 
   return (
     <div className="new-item-page">
-      <h1>{initialData ? 'Editar item' : 'Novo item'}</h1>
-
-      <form className="new-item-form" onSubmit={handleSubmit}>
-        <div className="form-group">
-          <label>Nome / Descrição</label>
-          <input
-            type="text"
-            placeholder="Ex: Sofá 3 lugares"
-            value={form.name}
-            onChange={e => set('name', e.target.value)}
-            required
-          />
-        </div>
-
-        <div className="form-group">
-          <label>Categoria</label>
-          <select
-            value={form.categoria}
-            onChange={e => set('categoria', e.target.value)}
-            required
-          >
-            <option value="">Selecione...</option>
-            {CATEGORIAS.map(c => <option key={c} value={c}>{c}</option>)}
-          </select>
-        </div>
-
-        <div>
-          <div className="form-section-title">Dimensões (m)</div>
-        </div>
-
-        <div className="form-row">
-          <div className="form-group">
-            <label>Comp.</label>
-            <input
-              type="number" min="0" step="any"
-              placeholder="Ex: 2.00"
-              value={form.comp}
-              onKeyDown={blockInvalidChar}
-              onChange={e => set('comp', e.target.value)}
-              required
-            />
+      <h1>Adicionar Itens</h1>
+      <form onSubmit={handleSubmit} className="new-items-scroll">
+        {items.map((item, index) => (
+          <div key={index} className="item-form-card">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <h3>Item {index + 1}</h3>
+              {items.length > 1 && (
+                <button type="button" className="btn-icon danger" onClick={() => removeItem(index)}>
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2">
+                    <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/>
+                  </svg>
+                </button>
+              )}
+            </div>
+            <div className="form-group">
+              <label>Nome / Descrição</label>
+              <input type="text" value={item.name} onChange={e => updateItem(index, 'name', e.target.value)} required />
+            </div>
+            <div className="form-group">
+              <label>Categoria</label>
+              <select value={item.categoria} onChange={e => updateItem(index, 'categoria', e.target.value)} required>
+                <option value="">Selecione...</option>
+                {CATEGORIAS.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
+            </div>
+            <div className="form-row">
+              <div className="form-group"><label>Comprimento (metros).</label><input type="number" step="any" value={item.comp} onKeyDown={blockInvalidChar} onChange={e => updateItem(index, 'comp', e.target.value)} required /></div>
+              <div className="form-group"><label>Largura (metros).</label><input type="number" step="any" value={item.larg} onKeyDown={blockInvalidChar} onChange={e => updateItem(index, 'larg', e.target.value)} required /></div>
+              <div className="form-group"><label>Altura (metros).</label><input type="number" step="any" value={item.alt} onKeyDown={blockInvalidChar} onChange={e => updateItem(index, 'alt', e.target.value)} required /></div>
+            </div>
+            <div className="form-row">
+              <div className="form-group"><label>Peso (kg)</label><input type="number" step="any" value={item.peso} onKeyDown={blockInvalidChar} onChange={e => updateItem(index, 'peso', e.target.value)} required /></div>
+              <div className="form-group"><label>Quantidade (unidades).</label><input type="number" min="1" value={item.quantidade} onKeyDown={blockInvalidChar} onChange={e => updateItem(index, 'quantidade', e.target.value)} required /></div>
+            </div>
           </div>
-          <div className="form-group">
-            <label>Larg.</label>
-            <input
-              type="number" min="0" step="any"
-              placeholder="Ex: 0.90"
-              value={form.larg}
-              onKeyDown={blockInvalidChar}
-              onChange={e => set('larg', e.target.value)}
-              required
-            />
-          </div>
-          <div className="form-group">
-            <label>Alt.</label>
-            <input
-              type="number" min="0" step="any"
-              placeholder="Ex: 0.85"
-              value={form.alt}
-              onKeyDown={blockInvalidChar}
-              onChange={e => set('alt', e.target.value)}
-              required
-            />
-          </div>
+        ))}
+        <div className="add-another-btn" onClick={() => setItems([...items, createEmptyItem()])}>
+          + Adicionar outro item
         </div>
-
-        <div className="form-row">
-          <div className="form-group">
-            <label>Peso (kg)</label>
-            <input
-              type="number" min="0" step="any"
-              placeholder="Ex: 45"
-              value={form.peso}
-              onKeyDown={blockInvalidChar}
-              onChange={e => set('peso', e.target.value)}
-              required
-            />
-          </div>
-          <div className="form-group">
-            <label>Quantidade</label>
-            <input
-              type="number" min="1"
-              placeholder="Ex: 1"
-              value={form.quantidade}
-              onKeyDown={blockInvalidChar}
-              onChange={e => set('quantidade', e.target.value)}
-              required
-            />
-          </div>
-        </div>
-
-        <div className="form-actions">
+        <div className="form-actions" style={{minWidth: '200px', display: 'flex', flexDirection: 'column', gap: '10px'}}>
+          <button type="submit" className="btn-primary">Salvar tudo</button>
           <button type="button" className="btn-secondary" onClick={onCancel}>Cancelar</button>
-          <button type="submit" className="btn-primary">Salvar</button>
         </div>
       </form>
     </div>

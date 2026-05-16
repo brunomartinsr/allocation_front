@@ -2,7 +2,7 @@ import { useState } from 'react'
 
 function IconPackage() {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+    <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" strokeWidth="1.5">
       <path d="M20 7l-8-4-8 4m16 0v10l-8 4m-8-4V7m16 0l-8 4m-8-4l8 4"/>
     </svg>
   )
@@ -39,32 +39,7 @@ export default function ItemsPage({ items, onAdd, onEdit, onDelete, onSolicitar,
 
   return (
     <div className="items-page">
-      <div className="page-header">
-        <h1>Cliente</h1>
-        {user && (
-          <div className="user-badge">
-            <IconUser />
-            {user.email}
-          </div>
-        )}
-      </div>
-
-      <div className="tabs">
-        <button
-          className={`tab-btn ${activeTab === 'items' ? 'active' : ''}`}
-          onClick={() => setActiveTab('items')}
-        >
-          Itens
-        </button>
-        <button
-          className={`tab-btn ${activeTab === 'pedidos' ? 'active' : ''}`}
-          onClick={() => { setActiveTab('pedidos'); onPedidos() }}
-        >
-          Pedidos
-        </button>
-      </div>
-
-      <div className="add-item-bar">
+      <div className="add-item-bar" style={{ marginBottom: '24px' }}>
         <button className="btn-primary" onClick={onAdd}>+ Adicionar item</button>
       </div>
 
@@ -76,20 +51,19 @@ export default function ItemsPage({ items, onAdd, onEdit, onDelete, onSolicitar,
         </div>
       ) : (
         <>
-          <div className="items-list">
+          <div className="items-grid">
             {items.map((item, i) => (
-              <div key={i} className="item-card">
+              <div key={i} className="item-card-grid">
+                <button className="btn-icon edit-btn" onClick={() => onEdit(i)} title="Editar"><IconEdit /></button>
+                <button className="btn-icon danger delete-btn" onClick={() => onDelete(i)} title="Remover"><IconTrash /></button>
                 <div className="item-icon"><IconPackage /></div>
                 <div className="item-info">
                   <div className="item-name">{item.name || 'Item sem nome'}</div>
-                  <div className="item-meta">
-                    {item.comp}x{item.larg}x{item.alt} m · {item.peso} kg
-                    {item.quantidade > 1 && ` · x${item.quantidade}`}
+                  <div className="item-details">
+                    <div><strong>Dimensões:</strong> {item.comp}x{item.larg}x{item.alt} m</div>
+                    <div><strong>Peso:</strong> {item.peso} kg</div>
+                    <div><strong>Qtd:</strong> {item.quantidade}</div>
                   </div>
-                </div>
-                <div className="item-actions">
-                  <button className="btn-icon" onClick={() => onEdit(i)} title="Editar"><IconEdit /></button>
-                  <button className="btn-icon danger" onClick={() => onDelete(i)} title="Remover"><IconTrash /></button>
                 </div>
               </div>
             ))}

@@ -10,10 +10,45 @@ export default function ResumoPage({ items, onConfirmar, onCancel }) {
     return acc + vol
   }, 0)
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
     if (!origem || !destino) return
-    onConfirmar({ items, origem, destino, pesoTotal, volTotal })
+
+    const token = localStorage.getItem('token')
+    
+    // Preparar o payload exatamente como o backend espera
+    const payload = {
+      cargas: items.map(it => ({
+        name: it.name,
+        categoria: it.categoria,
+        comp: parseFloat(it.comp),
+        larg: parseFloat(it.larg),
+        alt: parseFloat(it.alt),
+        peso: parseFloat(it.peso),
+        quantidade: parseInt(it.quantidade),
+        valor: parseFloat(it.valor || 0) // Assumindo que o front possui o campo valor
+      }))
+    }
+
+    try {
+      const response = await fetch('http://localhost:8000/api/run-allocation/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Token ${token}`
+        },
+        body: JSON.stringify(payload)
+      })
+
+      if (!response.ok) throw new Error('Erro na alocação')
+
+      const data = await response.json()
+      // Passa o resultado da alocação para a função de confirmação
+      onConfirmar({ ...data, origem, destino })
+    } catch (err) {
+      console.error('Erro ao enviar pedido:', err)
+      alert('Não foi possível realizar a alocação. Verifique os dados.')
+    }
   }
 
   return (
@@ -49,36 +84,29 @@ export default function ResumoPage({ items, onConfirmar, onCancel }) {
 
         <div className="resumo-section">
           <div className="resumo-section-title">Resumo dos itens</div>
-          <table className="resumo-table">
-            <thead>
-              <tr>
-                <th>Item</th>
-                <th>Dimensões (m)</th>
-                <th>Qtd</th>
-                <th>Peso</th>
-              </tr>
-            </thead>
-            <tbody>
-              {items.map((it, i) => (
-                <tr key={i}>
-                  <td>{it.name}</td>
-                  <td style={{ fontFamily: 'var(--mono)', fontSize: 13 }}>
-                    {it.comp}x{it.larg}x{it.alt}
-                  </td>
-                  <td>{it.quantidade}</td>
-                  <td>{(parseFloat(it.peso) * parseInt(it.quantidade)).toFixed(1)} kg</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <div className="items-list">
+            {items.map((it, i) => (
+              <div key={i} className="item-card" style={{ marginBottom: '12px' }}>
+                <div className="item-info">
+                  <div className="item-name">{it.name}</div>
+                  <div className="item-details" style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '8px' }}>
+                    <div><strong>Categoria:</strong> {it.categoria}</div>
+                    <div><strong>Dimensões:</strong> {it.comp} x {it.larg} x {it.alt} m</div>
+                    <div><strong>Peso:</strong> {it.peso} kg</div>
+                    <div><strong>Quantidade:</strong> {it.quantidade} unidades</div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
 
-          <div className="resumo-totals">
+          <div className="resumo-totals" style={{ marginTop: '24px' }}>
             <div className="total-item">
-              <span className="total-label">Volume total</span>
+              <span className="total-label">Volume total </span>
               <span className="total-value">{volTotal.toFixed(2)} m³</span>
             </div>
             <div className="total-item">
-              <span className="total-label">Peso total</span>
+              <span className="total-label">Peso total </span>
               <span className="total-value accent">{pesoTotal.toFixed(1)} kg</span>
             </div>
           </div>
