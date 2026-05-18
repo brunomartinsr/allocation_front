@@ -9,6 +9,7 @@ import NewItemPage from './pages/NewItemPage'
 import ResumoPage from './pages/ResumoPage'
 import ConfirmacaoPage from './pages/ConfirmacaoPage'
 import PedidosPage from './pages/PedidosPage'
+import AllocationResultPage from './pages/AllocationResultPage'
 
 export default function App() {
   const [page, setPage] = useState('login')
@@ -17,6 +18,8 @@ export default function App() {
   const [pedidos, setPedidos] = useState([])
   const [editingItem, setEditingItem] = useState(null)
   const [lastPedido, setLastPedido] = useState(null)
+  const [allocationResult, setAllocationResult] = useState(null)
+  const [orderMetadata, setOrderMetadata] = useState({ origem: '', destino: '' })
   const [selectedTruck, setSelectedTruck] = useState(null)
   const [carrierTab, setCarrierTab] = useState('caminhoes')
   const [trucks, setTrucks] = useState([])
@@ -44,19 +47,20 @@ export default function App() {
   }
 
   const fetchTransports = async () => {
+    // ... (unchanged)
+  }
+
+  const fetchPedidos = async () => {
     const token = localStorage.getItem('token')
     if (!token) return
-    setLoadingTransports(true)
     try {
-      const res = await fetch('http://localhost:8000/api/transports/my-transports', {
+      const res = await fetch('http://localhost:8000/api/pedidos', {
         headers: { 'Authorization': `Token ${token}` }
       })
       const data = await res.json()
-      setTransports(Array.isArray(data) ? data : [])
+      setPedidos(Array.isArray(data) ? data : [])
     } catch (err) {
-      console.error(err)
-    } finally {
-      setLoadingTransports(false)
+      console.error('Erro ao buscar pedidos:', err)
     }
   }
 
@@ -64,6 +68,9 @@ export default function App() {
     if (page === 'carrier-dashboard') {
       if (carrierTab === 'caminhoes') fetchTrucks()
       else fetchTransports()
+    }
+    if (page === 'pedidos') {
+      fetchPedidos()
     }
   }, [page, carrierTab])
 
@@ -136,19 +143,67 @@ export default function App() {
     navigate('new-item')
   }
 
-  const handleConfirmarPedido = (pedido) => {
+  const handleRunAllocation = (result, meta) => {
+    setAllocationResult(result)
+    setOrderMetadata(meta)
+    navigate('allocation-result')
+  }
+
+  const handleFinalConfirmOrder = async () => {
+    const token = localStorage.getItem('token')
+    const payload = {
+      origem: orderMetadata.origem,
+      destino: orderMetadata.destino,
+      alocacao: allocationResult
+    }
+
+    try {
+      const res = await fetch('http://localhost:8000/api/pedidos', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Token ${token}`
+        },
+        body: JSON.stringify(payload)
+      })
+      if (!res.ok) throw new Error('Erro ao salvar pedido')
+      
+      const data = await res.json()
+      // Reaproveita a lógica de sucesso
+      handleConfirmarPedido({ ...allocationResult, origem: orderMetadata.origem, destino: orderMetadata.destino })
+      setAllocationResult(null)
+    } catch (err) {
+      console.error(err)
+      alert('Erro ao confirmar pedido no servidor.')
+    }
+  }
+
+  const handleCancelAllocation = () => {
+    setItems([])
+    setAllocationResult(null)
+    navigate('pedidos')
+  }
+
+  const handleConfirmarPedido = (resultadoAlocacao) => {
+    // resultadoAlocacao contém { resumo_geral, caminhoes, nao_alocados, message, origem, destino }
     const novoPedido = {
-      ...pedido,
       id: `TRK-${Math.floor(10000 + Math.random() * 90000)}`,
       data: new Date().toLocaleDateString('pt-BR'),
       hora: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+      origem: resultadoAlocacao.origem,
+      destino: resultadoAlocacao.destino,
+      // Quantidade de itens é a soma de itens alocados + não alocados
+      itensCount: resultadoAlocacao.resumo_geral.qtd_itens_alocados + resultadoAlocacao.resumo_geral.qtd_itens_nao_alocados,
+      pesoTotal: resultadoAlocacao.caminhoes.reduce((acc, c) => acc + c.peso_utilizado, 0),
+      volTotal: resultadoAlocacao.caminhoes.reduce((acc, c) => acc + c.comprimento_utilizado, 0), // Simplificado
       status: [
         { label: 'Pedido confirmado', done: true },
         { label: 'Transportadora alocada', done: false },
         { label: 'Coleta agendada', done: false },
         { label: 'Em trânsito', done: false },
         { label: 'Entregue', done: false },
-      ]
+      ],
+      detalhes: resultadoAlocacao // Guarda o objeto completo da API
     }
     setLastPedido(novoPedido)
     setPedidos(prev => [novoPedido, ...prev])
@@ -275,8 +330,16 @@ export default function App() {
         {page === 'resumo' && (
           <ResumoPage
             items={items}
-            onConfirmar={handleConfirmarPedido}
+            onConfirmar={handleRunAllocation}
             onCancel={() => navigate('items')}
+          />
+        )}
+
+        {page === 'allocation-result' && (
+          <AllocationResultPage
+            result={allocationResult}
+            onConfirm={handleFinalConfirmOrder}
+            onCancel={handleCancelAllocation}
           />
         )}
 

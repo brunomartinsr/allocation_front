@@ -9,6 +9,7 @@ export default function ResumoPage({ items, onConfirmar, onCancel }) {
     const vol = parseFloat(it.comp || 0) * parseFloat(it.larg || 0) * parseFloat(it.alt || 0) * parseInt(it.quantidade || 1)
     return acc + vol
   }, 0)
+  const valorTotal = items.reduce((acc, it) => acc + parseFloat(it.valor || 100) * parseInt(it.quantidade || 1), 0)
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -26,8 +27,10 @@ export default function ResumoPage({ items, onConfirmar, onCancel }) {
         alt: parseFloat(it.alt),
         peso: parseFloat(it.peso),
         quantidade: parseInt(it.quantidade),
-        valor: parseFloat(it.valor || 0) // Assumindo que o front possui o campo valor
-      }))
+        valor: parseFloat(it.valor || 100)
+      })),
+      origem: origem,
+      destino: destino
     }
 
     try {
@@ -43,8 +46,8 @@ export default function ResumoPage({ items, onConfirmar, onCancel }) {
       if (!response.ok) throw new Error('Erro na alocação')
 
       const data = await response.json()
-      // Passa o resultado da alocação para a função de confirmação
-      onConfirmar({ ...data, origem, destino })
+      // Passa o resultado da alocação e metadados para a função de confirmação (que agora levará ao resultado)
+      onConfirmar(data, { origem, destino })
     } catch (err) {
       console.error('Erro ao enviar pedido:', err)
       alert('Não foi possível realizar a alocação. Verifique os dados.')
@@ -94,6 +97,7 @@ export default function ResumoPage({ items, onConfirmar, onCancel }) {
                     <div><strong>Dimensões:</strong> {it.comp} x {it.larg} x {it.alt} m</div>
                     <div><strong>Peso:</strong> {it.peso} kg</div>
                     <div><strong>Quantidade:</strong> {it.quantidade} unidades</div>
+                    <div><strong>Valor unitário:</strong> R$ {parseFloat(it.valor || 100).toFixed(2)}</div>
                   </div>
                 </div>
               </div>
@@ -107,7 +111,11 @@ export default function ResumoPage({ items, onConfirmar, onCancel }) {
             </div>
             <div className="total-item">
               <span className="total-label">Peso total </span>
-              <span className="total-value accent">{pesoTotal.toFixed(1)} kg</span>
+              <span className="total-value">{pesoTotal.toFixed(1)} kg</span>
+            </div>
+            <div className="total-item" style={{ borderTop: '1px solid var(--app-border)', paddingTop: '8px', marginTop: '8px' }}>
+              <span className="total-label"><strong>Valor Total do Pedido</strong></span>
+              <span className="total-value accent">R$ {valorTotal.toFixed(2)}</span>
             </div>
           </div>
         </div>

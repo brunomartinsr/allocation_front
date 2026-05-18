@@ -61,14 +61,13 @@ export default function PedidosPage({ pedidos, onBack, user }) {
               </div>
 
               <div className="timeline">
-                {pedido.status.map((step, j) => (
-                  <div key={j} className="timeline-item">
-                    <div className={`timeline-dot ${step.done ? 'done' : ''}`} />
-                    <div className={`timeline-label ${step.done ? 'done' : ''}`}>{step.label}</div>
+                <div className="timeline-item">
+                  <div className="timeline-dot done" />
+                  <div className="timeline-label done">
+                    {pedido.status.filter(s => s.done).slice(-1)[0]?.label || 'Status indefinido'}
                   </div>
-                ))}
-              </div>
-            </div>
+                </div>
+              </div>            </div>
           ))}
         </div>
       )}
